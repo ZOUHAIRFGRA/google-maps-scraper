@@ -8,6 +8,7 @@ import (
 	"github.com/urfave/cli/v3"
 
 	"github.com/gosom/google-maps-scraper/cmd/gmapssaas/cmdadmin"
+	"github.com/gosom/google-maps-scraper/cmd/gmapssaas/cmdmigrate"
 	"github.com/gosom/google-maps-scraper/cmd/gmapssaas/cmdprovision"
 	"github.com/gosom/google-maps-scraper/cmd/gmapssaas/cmdserve"
 	"github.com/gosom/google-maps-scraper/cmd/gmapssaas/cmdupdate"
@@ -41,6 +42,7 @@ func main() {
 		Commands: []*cli.Command{
 			cmdserve.Command,
 			cmdworker.Command,
+			cmdmigrate.Command,
 			cmdprovision.Command,
 			cmdupdate.Command,
 			cmdadmin.Command,

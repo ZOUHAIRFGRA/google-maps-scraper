@@ -71,10 +71,17 @@ var Command = &cli.Command{
 			Sources:  cli.EnvVars(saas.EnvEncryptionKey),
 			Required: true,
 		},
+		&cli.BoolFlag{
+			Name:    "disable-api-key-auth",
+			Usage:   "Disable API key authentication for /api/v1 endpoints (not recommended for public internet)",
+			Value:   false,
+			Sources: cli.EnvVars(saas.EnvDisableAPIKeyAuth),
+		},
 	},
 	Action: func(ctx context.Context, cmd *cli.Command) error {
 		addr := cmd.String("addr")
 		dsn := cmd.String("database-url")
+		disableAPIKeyAuth := cmd.Bool("disable-api-key-auth")
 
 		// Connect to database
 		dbPool, err := postgres.Connect(ctx, dsn,
@@ -144,7 +151,11 @@ var Command = &cli.Command{
 
 		adminState.RQueueClient = rqueueClient
 
-		apiState := api.NewAppState(rqueueClient, apiStore)
+		apiState := api.NewAppState(rqueueClient, apiStore, disableAPIKeyAuth)
+
+		if disableAPIKeyAuth {
+			log.Warn("API key authentication is disabled for /api/v1 endpoints")
+		}
 
 		// Setup router
 		mainRouter := chi.NewRouter()

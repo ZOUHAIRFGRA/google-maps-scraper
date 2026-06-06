@@ -23,15 +23,17 @@ type IStore interface {
 
 // AppState holds dependencies for API handlers.
 type AppState struct {
-	RQueue *rqueue.Client
-	Store  IStore
+	RQueue            *rqueue.Client
+	Store             IStore
+	DisableAPIKeyAuth bool
 }
 
 // NewAppState creates a new API AppState.
-func NewAppState(rqueue *rqueue.Client, store IStore) *AppState {
+func NewAppState(rqueue *rqueue.Client, store IStore, disableAPIKeyAuth bool) *AppState {
 	return &AppState{
-		RQueue: rqueue,
-		Store:  store,
+		RQueue:            rqueue,
+		Store:             store,
+		DisableAPIKeyAuth: disableAPIKeyAuth,
 	}
 }
 
@@ -40,7 +42,10 @@ func Routes(r chi.Router, appState *AppState) {
 	r.Use(httpext.LoggingMiddleware)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(120 * time.Second))
-	r.Use(KeyAuth(appState.Store.ValidateAPIKey))
+
+	if !appState.DisableAPIKeyAuth {
+		r.Use(KeyAuth(appState.Store.ValidateAPIKey))
+	}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/health", healthCheckHandler(appState))

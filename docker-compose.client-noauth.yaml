@@ -1,0 +1,62 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: gmapssaas
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: CHANGE_ME_STRONG
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d gmapssaas"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  migrate:
+    image: ghcr.io/gosom/google-maps-scraper-saas:latest
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:CHANGE_ME_STRONG@postgres:5432/gmapssaas?sslmode=disable
+    command: ["migrate"]
+    restart: "no"
+
+  api:
+    image: ghcr.io/gosom/google-maps-scraper-saas:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      ADDR: :8080
+      DATABASE_URL: postgres://postgres:CHANGE_ME_STRONG@postgres:5432/gmapssaas?sslmode=disable
+      ENCRYPTION_KEY: CHANGE_ME_64_HEX_CHARS
+      DISABLE_API_KEY_AUTH: "true"
+    command: ["serve"]
+    ports:
+      - "8080:8080"
+
+  worker:
+    image: ghcr.io/gosom/google-maps-scraper-saas:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://postgres:CHANGE_ME_STRONG@postgres:5432/gmapssaas?sslmode=disable
+      ENCRYPTION_KEY: CHANGE_ME_64_HEX_CHARS
+      CONCURRENCY: "4"
+      RIVER_MAX_WORKERS: "20"
+    command: ["worker"]
+
+volumes:
+  pg_data:
