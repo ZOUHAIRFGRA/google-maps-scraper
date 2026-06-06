@@ -28,7 +28,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_STRONG}@postgres:5432/gmapssaas?sslmode=disable
+      DATABASE_URL: host=postgres port=5432 user=postgres password=${POSTGRES_PASSWORD:-CHANGE_ME_STRONG} dbname=gmapssaas sslmode=disable
     command: ["migrate"]
     restart: "no"
 
@@ -42,7 +42,7 @@ services:
         condition: service_completed_successfully
     environment:
       ADDR: :8080
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_STRONG}@postgres:5432/gmapssaas?sslmode=disable
+      DATABASE_URL: host=postgres port=5432 user=postgres password=${POSTGRES_PASSWORD:-CHANGE_ME_STRONG} dbname=gmapssaas sslmode=disable
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0398d4cad290e145cb8242bb74e045264564d384d33ada80ff7702e460e6956c}
       DISABLE_API_KEY_AUTH: "true"
     command: ["serve"]
@@ -58,7 +58,7 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_STRONG}@postgres:5432/gmapssaas?sslmode=disable
+      DATABASE_URL: host=postgres port=5432 user=postgres password=${POSTGRES_PASSWORD:-CHANGE_ME_STRONG} dbname=gmapssaas sslmode=disable
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0398d4cad290e145cb8242bb74e045264564d384d33ada80ff7702e460e6956c}
       CONCURRENCY: "4"
       RIVER_MAX_WORKERS: "20"
