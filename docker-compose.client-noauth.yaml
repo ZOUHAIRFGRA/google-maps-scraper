@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: gmapssaas
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: CHANGE_ME_STRONG
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_STRONG}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d gmapssaas"]
       interval: 5s
@@ -22,7 +22,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://postgres:CHANGE_ME_STRONG@postgres:5432/gmapssaas?sslmode=disable
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_STRONG}@postgres:5432/gmapssaas?sslmode=disable
     command: ["migrate"]
     restart: "no"
 
@@ -36,8 +36,8 @@ services:
         condition: service_completed_successfully
     environment:
       ADDR: :8080
-      DATABASE_URL: postgres://postgres:CHANGE_ME_STRONG@postgres:5432/gmapssaas?sslmode=disable
-      ENCRYPTION_KEY: CHANGE_ME_64_HEX_CHARS
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_STRONG}@postgres:5432/gmapssaas?sslmode=disable
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0398d4cad290e145cb8242bb74e045264564d384d33ada80ff7702e460e6956c}
       DISABLE_API_KEY_AUTH: "true"
     command: ["serve"]
     ports:
@@ -52,8 +52,8 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: postgres://postgres:CHANGE_ME_STRONG@postgres:5432/gmapssaas?sslmode=disable
-      ENCRYPTION_KEY: CHANGE_ME_64_HEX_CHARS
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-CHANGE_ME_STRONG}@postgres:5432/gmapssaas?sslmode=disable
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0398d4cad290e145cb8242bb74e045264564d384d33ada80ff7702e460e6956c}
       CONCURRENCY: "4"
       RIVER_MAX_WORKERS: "20"
     command: ["worker"]
