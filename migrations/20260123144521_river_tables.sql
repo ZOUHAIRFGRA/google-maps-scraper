@@ -247,7 +247,7 @@ RETURNS boolean
 LANGUAGE SQL
 IMMUTABLE
 AS $$
-    SELECT CASE state
+  SELECT CASE state::text
         WHEN 'available' THEN get_bit(bitmask, 7)
         WHEN 'cancelled' THEN get_bit(bitmask, 6)
         WHEN 'completed' THEN get_bit(bitmask, 5)
