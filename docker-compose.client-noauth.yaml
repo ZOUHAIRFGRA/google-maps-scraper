@@ -22,24 +22,12 @@ services:
     volumes:
       - pg_data_v2:/var/lib/postgresql/data
 
-  migrate:
-    <<: *gmapssaas-image
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: "host=postgres port=5432 user=postgres password=${POSTGRES_PASSWORD:-CHANGE_ME_STRONG} dbname=gmapssaas sslmode=disable connect_timeout=10"
-    command: ["migrate"]
-    restart: "no"
-
   api:
     <<: *gmapssaas-image
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     environment:
       ADDR: :8080
       DATABASE_URL: "host=postgres port=5432 user=postgres password=${POSTGRES_PASSWORD:-CHANGE_ME_STRONG} dbname=gmapssaas sslmode=disable connect_timeout=10"
@@ -55,8 +43,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
+      api:
+        condition: service_started
     environment:
       DATABASE_URL: "host=postgres port=5432 user=postgres password=${POSTGRES_PASSWORD:-CHANGE_ME_STRONG} dbname=gmapssaas sslmode=disable connect_timeout=10"
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-0398d4cad290e145cb8242bb74e045264564d384d33ada80ff7702e460e6956c}

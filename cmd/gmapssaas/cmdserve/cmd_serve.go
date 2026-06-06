@@ -19,6 +19,7 @@ import (
 	"github.com/gosom/google-maps-scraper/env"
 	"github.com/gosom/google-maps-scraper/httpext"
 	"github.com/gosom/google-maps-scraper/log"
+	"github.com/gosom/google-maps-scraper/migrations"
 	"github.com/gosom/google-maps-scraper/postgres"
 	ratelimitpostgres "github.com/gosom/google-maps-scraper/ratelimit/postgres"
 	"github.com/gosom/google-maps-scraper/rqueue"
@@ -107,6 +108,17 @@ var Command = &cli.Command{
 		}
 
 		env.LogUnsetEnvs(saas.EnvDatabaseURL, saas.EnvEncryptionKey)
+
+		migrationCount, err := migrations.RunWithDSN(dsn)
+		if err != nil {
+			return fmt.Errorf("failed to run migrations: %w", err)
+		}
+
+		if migrationCount > 0 {
+			log.Info("database migrations applied", "count", migrationCount)
+		} else {
+			log.Info("no database migrations to apply")
+		}
 
 		// Create stores
 		adminStore := adminpostgres.NewWithPool(dbPool, encryptionKey)
