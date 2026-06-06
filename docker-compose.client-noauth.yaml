@@ -1,5 +1,11 @@
 version: "3.9"
 
+x-gmapssaas-image: &gmapssaas-image
+  build:
+    context: .
+    dockerfile: Dockerfile.saas
+  image: gmapssaas-local:latest
+
 services:
   postgres:
     image: postgres:16
@@ -17,7 +23,7 @@ services:
       - pg_data:/var/lib/postgresql/data
 
   migrate:
-    image: ghcr.io/gosom/google-maps-scraper-saas:latest
+    <<: *gmapssaas-image
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,7 +33,7 @@ services:
     restart: "no"
 
   api:
-    image: ghcr.io/gosom/google-maps-scraper-saas:latest
+    <<: *gmapssaas-image
     restart: unless-stopped
     depends_on:
       postgres:
@@ -44,7 +50,7 @@ services:
       - "8080:8080"
 
   worker:
-    image: ghcr.io/gosom/google-maps-scraper-saas:latest
+    <<: *gmapssaas-image
     restart: unless-stopped
     depends_on:
       postgres:
