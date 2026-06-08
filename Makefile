@@ -1,6 +1,18 @@
 APP_NAME := google_maps_scraper
 VERSION := 1.14.0
 
+ifeq ($(OS),Windows_NT)
+SET_GOOS_WINDOWS = set GOOS=windows&& set GOARCH=amd64&&
+SET_GOOS_WINDOWS_386 = set GOOS=windows&& set GOARCH=386&&
+SET_GOOS_LINUX = set GOOS=linux&& set GOARCH=amd64&&
+SET_GOOS_DARWIN = set GOOS=darwin&& set GOARCH=amd64&&
+else
+SET_GOOS_WINDOWS = GOOS=windows GOARCH=amd64
+SET_GOOS_WINDOWS_386 = GOOS=windows GOARCH=386
+SET_GOOS_LINUX = GOOS=linux GOARCH=amd64
+SET_GOOS_DARWIN = GOOS=darwin GOARCH=amd64
+endif
+
 default: help
 
 # generate help info from comments: thanks to https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
@@ -33,12 +45,21 @@ lint: ## runs the linter
 	go tool golangci-lint -v run ./...
 
 cross-compile: ## cross compiles the application
-	GOOS=linux GOARCH=amd64 go build -o bin/$(APP_NAME)-${VERSION}-linux-amd64
-	GOOS=darwin GOARCH=amd64 go build -o bin/$(APP_NAME)-${VERSION}-darwin-amd64
-	GOOS=windows GOARCH=amd64 go build -o bin/$(APP_NAME)-${VERSION}-windows-amd64.exe
+	$(SET_GOOS_LINUX) go build -o bin/$(APP_NAME)-${VERSION}-linux-amd64
+	$(SET_GOOS_DARWIN) go build -o bin/$(APP_NAME)-${VERSION}-darwin-amd64
+	$(SET_GOOS_WINDOWS) go build -o bin/$(APP_NAME)-${VERSION}-windows-amd64.exe
 
 build: ## builds the application (default: playwright)
 	go build -o bin/$(APP_NAME) .
+
+build-client: ## builds the desktop API client app
+	go build -o bin/gmaps-client ./cmd/gmapsclient/
+
+build-client-windows: ## builds the desktop API client for Windows
+	$(SET_GOOS_WINDOWS) go build -o bin/gmaps-client-windows-amd64.exe ./cmd/gmapsclient/
+
+build-client-windows-386: ## builds the desktop API client for Windows (32-bit fallback)
+	$(SET_GOOS_WINDOWS_386) go build -o bin/gmaps-client-windows-386.exe ./cmd/gmapsclient/
 
 docker: ## builds docker image with playwright (default)
 	docker build -t $(APP_NAME):$(VERSION) .

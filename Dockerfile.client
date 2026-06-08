@@ -1,0 +1,23 @@
+# Build Windows GUI client
+FROM golang:1.26.3 AS builder
+
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Build for Windows AMD64
+RUN GOOS=windows GOARCH=amd64 CGO_ENABLED=1 \
+    CC=x86_64-w64-mingw32-gcc \
+    CXX=x86_64-w64-mingw32-g++ \
+    go build -o /tmp/gmaps-client.exe ./cmd/gmapsclient/
+
+# Final stage: just output the binary
+FROM alpine:3.18
+RUN apk add --no-cache ca-certificates
+
+COPY --from=builder /tmp/gmaps-client.exe /tmp/
+
+ENTRYPOINT [""]
+CMD ["sh", "-c", "cat /tmp/gmaps-client.exe"]
