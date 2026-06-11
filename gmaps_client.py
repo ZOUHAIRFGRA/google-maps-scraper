@@ -123,6 +123,17 @@ class GMapsClient:
         tk.Entry(simple_frame, textvariable=self.depth_var, width=8, font=("Arial", 10)).grid(row=0, column=1, padx=8)
         tk.Label(simple_frame, text="≈ up to 200 results", font=("Arial", 9), fg="#666").grid(row=0, column=2, sticky=tk.W)
 
+        # Fields selector
+        tk.Label(simple_frame, text="Fields:", font=("Arial", 9)).grid(row=1, column=0, sticky=tk.W, pady=(6, 0))
+        self.fields_var = tk.StringVar(value="lite")
+        fields_menu = ttk.Combobox(simple_frame, textvariable=self.fields_var,
+                                   values=["lite", "all", "title,phone,web_site,address",
+                                           "title,phone,web_site,address,review_rating,review_count,latitude,longitude"],
+                                   width=52, font=("Arial", 9))
+        fields_menu.grid(row=1, column=1, columnspan=3, padx=8, sticky=tk.W, pady=(6, 0))
+        tk.Label(simple_frame, text="  lite = name, phone, website, address, rating  |  all = every field",
+                 font=("Arial", 8), fg="#888").grid(row=2, column=0, columnspan=4, sticky=tk.W)
+
         # -- Grid mode tab --
         grid_frame = tk.Frame(self.notebook, padx=8, pady=6)
         self.notebook.add(grid_frame, text="  Grid (more results)  ")
@@ -227,8 +238,9 @@ class GMapsClient:
             self.log(f"Query: {query}  |  max_depth: {depth}")
             self.set_status("Submitting job...")
 
-            job_id = self.submit_job(query, max_depth=depth)
-            self.log(f"Job submitted: {job_id}")
+            fields = self._resolve_fields()
+            job_id = self.submit_job(query, max_depth=depth, fields=fields)
+            self.log(f"Job submitted: {job_id}  fields={fields or 'all'}")
             self.set_status("Job running...")
 
             result = self.wait_for_job(job_id, lambda m: self.log(m))
@@ -290,10 +302,13 @@ class GMapsClient:
         completed = 0
         failed = 0
 
+        fields = self._resolve_fields()
+        self.log(f"Fields: {fields or 'all'}")
+
         try:
             with ThreadPoolExecutor(max_workers=GRID_MAX_PARALLEL) as pool:
                 futures = {
-                    pool.submit(self._run_cell, query, lat, lon, zoom): (lat, lon)
+                    pool.submit(self._run_cell, query, lat, lon, zoom, fields): (lat, lon)
                     for lat, lon in cells
                 }
 
@@ -334,7 +349,7 @@ class GMapsClient:
             self.is_running = False
             self.run_btn.config(state=tk.NORMAL)
 
-    def _run_cell(self, query, lat, lon, zoom):
+    def _run_cell(self, query, lat, lon, zoom, fields=None):
         """Submit + wait for a single grid cell. Runs in a thread pool."""
         job_id = self.submit_job(
             query,
@@ -342,6 +357,7 @@ class GMapsClient:
             geo_coordinates=f"{lat},{lon}",
             zoom=zoom,
             fast_mode=True,
+            fields=fields,
         )
         result = self.wait_for_job(job_id, logger=None)
         return self.parse_results(result.get("results"))
@@ -350,7 +366,17 @@ class GMapsClient:
     # API helpers
     # ------------------------------------------------------------------
 
-    def submit_job(self, query, max_depth=10, geo_coordinates=None, zoom=None, fast_mode=False):
+    def _resolve_fields(self):
+        """Parse the fields input into a list to send to the API."""
+        raw = self.fields_var.get().strip().lower()
+        if not raw or raw == "all":
+            return []  # empty = all fields
+        if raw == "lite":
+            return ["lite"]
+        # comma-separated custom list
+        return [f.strip() for f in raw.split(",") if f.strip()]
+
+    def submit_job(self, query, max_depth=10, geo_coordinates=None, zoom=None, fast_mode=False, fields=None):
         payload = {
             "keyword": query,
             "lang": "en",
@@ -363,6 +389,8 @@ class GMapsClient:
             payload["zoom"] = zoom
         if fast_mode:
             payload["fast_mode"] = True
+        if fields:
+            payload["fields"] = fields
 
         url = f"{self.config['api_url'].rstrip('/')}/api/v1/scrape"
         resp = requests.post(url, json=payload, timeout=30)

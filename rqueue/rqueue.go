@@ -85,16 +85,17 @@ func GetScrapeWatchdogMetrics() ScrapeWatchdogMetrics {
 }
 
 type ScrapeJobArgs struct {
-	Keyword        string  `json:"keyword"`
-	Lang           string  `json:"lang"`
-	MaxDepth       int     `json:"max_depth"`
-	Email          bool    `json:"email"`
-	GeoCoordinates string  `json:"geo_coordinates"`
-	Zoom           int     `json:"zoom"`
-	Radius         float64 `json:"radius"`
-	FastMode       bool    `json:"fast_mode"`
-	ExtraReviews   bool    `json:"extra_reviews"`
-	TimeoutSecs    int     `json:"timeout"` // timeout in seconds
+	Keyword        string   `json:"keyword"`
+	Lang           string   `json:"lang"`
+	MaxDepth       int      `json:"max_depth"`
+	Email          bool     `json:"email"`
+	GeoCoordinates string   `json:"geo_coordinates"`
+	Zoom           int      `json:"zoom"`
+	Radius         float64  `json:"radius"`
+	FastMode       bool     `json:"fast_mode"`
+	ExtraReviews   bool     `json:"extra_reviews"`
+	TimeoutSecs    int      `json:"timeout"` // timeout in seconds
+	Fields         []string `json:"fields,omitempty"`
 }
 
 func (ScrapeJobArgs) Kind() string {
@@ -790,7 +791,7 @@ func (c *Client) GetJobStatus(ctx context.Context, jobID string) (*JobStatus, er
 		// Fetch results from scrape_results table
 		results, resultCount, err := c.getResults(ctx, riverJobID)
 		if err == nil {
-			status.Results = results
+			status.Results = filterResultFields(results, args.Fields)
 			status.ResultCount = resultCount
 		}
 	case "cancelled", "discarded":
@@ -801,6 +802,42 @@ func (c *Client) GetJobStatus(ctx context.Context, jobID string) (*JobStatus, er
 	}
 
 	return status, nil
+}
+
+// filterResultFields strips every key from each result row that is not in the
+// allow-list. If fields is nil/empty the original raw JSON is returned unchanged.
+func filterResultFields(raw json.RawMessage, fields []string) json.RawMessage {
+	if len(fields) == 0 || len(raw) == 0 {
+		return raw
+	}
+
+	allow := make(map[string]struct{}, len(fields))
+	for _, f := range fields {
+		allow[f] = struct{}{}
+	}
+
+	var rows []map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &rows); err != nil {
+		return raw
+	}
+
+	filtered := make([]map[string]json.RawMessage, 0, len(rows))
+	for _, row := range rows {
+		out := make(map[string]json.RawMessage, len(allow))
+		for k, v := range row {
+			if _, ok := allow[k]; ok {
+				out[k] = v
+			}
+		}
+		filtered = append(filtered, out)
+	}
+
+	b, err := json.Marshal(filtered)
+	if err != nil {
+		return raw
+	}
+
+	return b
 }
 
 // getResults fetches results from the scrape_results table.

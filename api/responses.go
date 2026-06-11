@@ -22,6 +22,13 @@ type HealthCheckResponse struct {
 	Status string `json:"status" example:"ok"`
 }
 
+// LiteFields is the predefined field set returned when fields=["lite"].
+// Only the most commonly needed columns are included.
+var LiteFields = []string{
+	"title", "category", "address", "phone", "web_site",
+	"latitude", "longitude", "review_rating", "review_count",
+}
+
 // ScrapeRequest represents a request to scrape Google Maps
 // @Description Request body for submitting a scrape job
 type ScrapeRequest struct {
@@ -45,6 +52,10 @@ type ScrapeRequest struct {
 	ExtraReviews bool `json:"extra_reviews,omitempty" example:"false"`
 	// Job timeout in seconds (1-300, default: 300)
 	Timeout int `json:"timeout,omitempty" example:"300"`
+	// Fields to include in results. Empty = all fields.
+	// Use ["lite"] for the minimal preset: title, category, address, phone, web_site, lat/lon, rating, review_count.
+	// Any combination of valid Entry JSON keys is accepted.
+	Fields []string `json:"fields,omitempty" example:"[\"title\",\"phone\",\"web_site\"]"`
 }
 
 func (r *ScrapeRequest) Validate() error {
@@ -108,6 +119,34 @@ func (r *ScrapeRequest) Validate() error {
 	}
 
 	return nil
+}
+
+// ResolvedFields expands the "lite" preset and deduplicates the field list.
+// Returns nil (= all fields) if no fields were requested.
+func (r *ScrapeRequest) ResolvedFields() []string {
+	if len(r.Fields) == 0 {
+		return nil
+	}
+
+	set := make(map[string]struct{})
+	for _, f := range r.Fields {
+		if strings.ToLower(f) == "lite" {
+			for _, lf := range LiteFields {
+				set[lf] = struct{}{}
+			}
+		} else {
+			set[strings.TrimSpace(f)] = struct{}{}
+		}
+	}
+
+	out := make([]string, 0, len(set))
+	for f := range set {
+		if f != "" {
+			out = append(out, f)
+		}
+	}
+
+	return out
 }
 
 func (r *ScrapeRequest) SetDefaults() {

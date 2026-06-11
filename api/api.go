@@ -117,6 +117,7 @@ func scrapeHandler(appState *AppState) http.HandlerFunc {
 			FastMode:       req.FastMode,
 			ExtraReviews:   req.ExtraReviews,
 			TimeoutSecs:    req.Timeout,
+			Fields:         req.ResolvedFields(),
 		}
 
 		jobID, err := appState.RQueue.InsertJob(r.Context(), jobArgs)
