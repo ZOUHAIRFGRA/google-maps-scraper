@@ -25,8 +25,7 @@ type HealthCheckResponse struct {
 // LiteFields is the predefined field set returned when fields=["lite"].
 // Only the most commonly needed columns are included.
 var LiteFields = []string{
-	"title", "category", "address", "phone", "web_site",
-	"latitude", "longitude", "review_rating", "review_count",
+	"title", "category", "phone", "web_site",
 }
 
 // ScrapeRequest represents a request to scrape Google Maps

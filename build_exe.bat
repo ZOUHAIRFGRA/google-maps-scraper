@@ -12,9 +12,8 @@ pyinstaller ^
   --onefile ^
   --windowed ^
   --name gmaps-client ^
-  --icon=icon.ico ^
   --distpath=bin ^
-  --buildpath=build ^
+  --workpath=build ^
   --specpath=build ^
   gmaps_client.py
 
